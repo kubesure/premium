@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: premium
+    role: business
+    type: backend
+  name: premiumcalc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: premium
+      role: business
+      type: backend
+  template:
+    metadata:
+      labels:
+        app: premium
+        role: business
+        type: backend
+    spec:
+      containers:
+      - image: premiumcalc:v1
+        name: premiumcalc
+        ports:
+        - containerPort: 8000
+        env: 
+        - name: redissvc
+          value: redissvc  

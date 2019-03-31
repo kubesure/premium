@@ -1,0 +1,12 @@
+{
+	"ImportPath": "github.com/kubesure/premium/health",
+	"GoVersion": "go1.12",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/gomodule/redigo/redis",
+			"Comment": "v1.7.0-10-g39e2c31",
+			"Rev": "39e2c31b7ca38b521ceb836620a269e62c895dc9"
+		}
+	]
+}
