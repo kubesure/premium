@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize"
@@ -9,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"time"
 )
@@ -31,7 +33,23 @@ func main() {
 	mux.HandleFunc("/api/v1/healths/premiums", premium)
 	mux.HandleFunc("/api/v1/healths/premiums/loads", loadMatrix)
 	mux.HandleFunc("/api/v1/healths/premiums/unloads", unloadMatrix)
-	log.Fatal(http.ListenAndServe(":8000", mux))
+	srv := http.Server{Addr: ":8080", Handler: mux}
+	ctx := context.Background()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		for range c {
+			log.Print("shutting down health premium server...")
+			srv.Shutdown(ctx)
+			<-ctx.Done()
+		}
+	}()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("ListenAndServe(): %s", err)
+	}
+	//log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
 func premium(w http.ResponseWriter, req *http.Request) {
