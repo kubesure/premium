@@ -7,34 +7,34 @@ import (
 	"testing"
 )
 
-const data string = `{"code":"2A","sumInsured":"100000","dateOfBirth":"07/06/1990"}`
+const data string = `{"code":"1A","sumInsured":"100000","dateOfBirth":"1990-07-06"}`
 
 func TestMarshal(t *testing.T) {
-	fmt.Println("gggg")
-	h := marshallReq(data)
-	if h.Code != "2A" {
+	h, err := marshallReq(data)
+	if err != nil && h.Code != "2A" {
 		t.Errorf("%s, wanted %q", h.Code, "2A")
 	}
 }
 
 func TestCalcPremium(t *testing.T) {
-	premium, err := calPremium(marshallReq(data))
-	//log.Println(premium)
+	h, err := marshallReq(data)
+	premium, err := calPremium(h)
+	fmt.Println(premium)
 	if err != nil {
-		if strings.Compare(premium, "30000") != 0 {
-			t.Errorf("got %s, wanted %q", "3000", premium)
+		fmt.Println(err)
+		if strings.Compare(premium, "1300") != 0 {
+			t.Errorf("got %s, wanted %q", premium, "1300")
 		}
 	}
 }
-
 func TestLoad(t *testing.T) {
-	loadpremium()
-
-	if 1 != 0 {
-		t.Errorf("got wanted ")
+	err := load()
+	if err != nil {
+		t.Errorf("load failed")
 	}
 }
 
 func TestCalAge(t *testing.T) {
-	calculateAge("1977-09-14")
+	age := calculateAge("1990-07-06")
+	fmt.Println(age)
 }
