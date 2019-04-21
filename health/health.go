@@ -52,7 +52,26 @@ func main() {
 	//log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
+func validateReq(w http.ResponseWriter, req *http.Request) error {
+	if req.Method != http.MethodPost {
+		log.Println("invalid method ", req.Method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return fmt.Errorf("Invalid method %s", req.Method)
+	}
+
+	if req.Header.Get("Content-Type") != "application/json" {
+		log.Println("invalid content type ", req.Header.Get("Content-Type"))
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("Invalid content-type require %s", "application/json")
+	}
+	return nil
+}
+
 func premium(w http.ResponseWriter, req *http.Request) {
+	if err := validateReq(w, req); err != nil {
+		return
+	}
+
 	body, _ := ioutil.ReadAll(req.Body)
 	h, err := marshallReq(string(body))
 	if err != nil {
