@@ -8,4 +8,5 @@ RUN CGO_ENABLED=0 go install
 FROM scratch
 WORKDIR /opt
 COPY --from=builder /go/bin/app .
+EXPOSE 8000
 ENTRYPOINT ["/opt/app"]
