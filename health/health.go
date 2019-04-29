@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/gomodule/redigo/redis"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,8 +27,21 @@ type response struct {
 	Premium string `json:"premium"`
 }
 
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetLevel(log.DebugLevel)
+
+}
+
 func main() {
-	log.Println("premium api starting...")
+	file, err := os.OpenFile("premium.log", os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.SetOutput(os.Stdout)
+	} else {
+		log.SetOutput(file)
+		defer file.Close()
+	}
+	log.Info("premium api starting...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healths/premiums", premium)
 	mux.HandleFunc("/api/v1/healths/premiums/loads", loadMatrix)
@@ -40,7 +53,7 @@ func main() {
 
 	go func() {
 		for range c {
-			log.Print("shutting down health premium server...")
+			log.Info("shutting down health premium server...")
 			srv.Shutdown(ctx)
 			<-ctx.Done()
 		}
@@ -49,20 +62,19 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ListenAndServe(): %s", err)
 	}
-	//log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
 func validateReq(w http.ResponseWriter, req *http.Request) error {
 	if req.Method != http.MethodPost {
-		log.Println("invalid method ", req.Method)
+		//log.Error("invalid method ", req.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return fmt.Errorf("Invalid method %s", req.Method)
 	}
 
 	if req.Header.Get("Content-Type") != "application/json" {
-		log.Println("invalid content type ", req.Header.Get("Content-Type"))
+		//log.Error("invalid content type ", req.Header.Get("Content-Type"))
 		w.WriteHeader(http.StatusBadRequest)
-		return fmt.Errorf("Invalid content-type require %s", "application/json")
+		return fmt.Errorf("Invalid content-type %s require %s", req.Header.Get("Content-Type"), "application/json")
 	}
 	return nil
 }
@@ -75,12 +87,12 @@ func premium(w http.ResponseWriter, req *http.Request) {
 	body, _ := ioutil.ReadAll(req.Body)
 	h, err := marshallReq(string(body))
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	s, err := calPremium(h)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 	} else {
 		data, _ := json.Marshal(response{Premium: s})
@@ -91,7 +103,7 @@ func premium(w http.ResponseWriter, req *http.Request) {
 
 func loadMatrix(w http.ResponseWriter, req *http.Request) {
 	if err := load(); err != nil {
-		log.Println(err)
+		log.Error(err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 	} else {
 		w.WriteHeader(http.StatusOK)
@@ -100,7 +112,7 @@ func loadMatrix(w http.ResponseWriter, req *http.Request) {
 
 func unloadMatrix(w http.ResponseWriter, req *http.Request) {
 	if err := unload(); err != nil {
-		log.Println(err)
+		log.Error(err)
 		w.WriteHeader(http.StatusServiceUnavailable)
 	} else {
 		w.WriteHeader(http.StatusOK)
@@ -111,7 +123,7 @@ func marshallReq(data string) (*healthreq, error) {
 	var h healthreq
 	err := json.Unmarshal([]byte(data), &h)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("err during unmarshalling ", err)
 	}
 	return &h, nil
 }
@@ -154,6 +166,9 @@ func calPremium(h *healthreq) (string, error) {
 	defer c.Close()
 	age := calculateAge(h.DateOfBirth)
 	score, err := calulateScore(age)
+	if err != nil {
+		return "", fmt.Errorf("cannot calculate age for dob %s", age)
+	}
 	key := h.Code + ":" + h.SumInsured
 
 	members, err := redis.Strings(c.Do("ZRANGEBYSCORE", key, score, score))
@@ -162,7 +177,7 @@ func calPremium(h *healthreq) (string, error) {
 		return "", fmt.Errorf("Cannot get premium for code %s error %v", key, err)
 	}
 	if len(members) != 1 {
-		return "", redis.ErrNil
+		return "", fmt.Errorf("code %s  dob %s sum assured %s combination not found ", h.Code, h.DateOfBirth, h.SumInsured)
 	}
 	return members[0], nil
 }
@@ -170,8 +185,7 @@ func calPremium(h *healthreq) (string, error) {
 func load() error {
 	xlsx, err := excelize.OpenFile("./premium_tables.xlsx")
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return fmt.Errorf("cannot load matrix file ", err)
 	}
 
 	c, err := conn()
@@ -197,11 +211,10 @@ func load() error {
 				premium, _ = strconv.Atoi(cellv)
 			}
 		}
-		fmt.Printf("key %v premium %v score %v ", key, premium, score)
-		fmt.Println("")
+		log.Debugf("key %v premium %v score %v ", key, premium, score)
 		_, err := c.Do("ZADD", key, score, premium)
 		if err != nil {
-			return nil
+			return fmt.Errorf("err adding key %s score %s premium %s to redis", key, score, premium)
 		}
 		if score == 8 {
 			score = 0
@@ -218,7 +231,7 @@ func unload() error {
 	defer c.Close()
 	_, errFlush := c.Do("FLUSHALL")
 	if errFlush != nil {
-		return err
+		return fmt.Errorf("err flusing all keys ", errFlush)
 	}
 	return nil
 }
