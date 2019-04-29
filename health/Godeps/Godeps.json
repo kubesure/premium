@@ -14,8 +14,22 @@
 			"Rev": "39e2c31b7ca38b521ceb836620a269e62c895dc9"
 		},
 		{
+			"ImportPath": "github.com/konsorten/go-windows-terminal-sequences",
+			"Comment": "v1.0.2",
+			"Rev": "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+		},
+		{
 			"ImportPath": "github.com/mohae/deepcopy",
 			"Rev": "c48cc78d482608239f6c4c92a4abd87eb8761c90"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v1.4.1-2-g9b3cdde",
+			"Rev": "9b3cdde74fbe9443d704467498a7dcb61a79de9b"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "9eb1bfa1ce65ae8a6ff3114b0aaf9a41a6cf3560"
 		}
 	]
 }
