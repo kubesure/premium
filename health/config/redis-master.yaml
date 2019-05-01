@@ -9,11 +9,11 @@ metadata:
 spec:
   replicas: 3
   serviceName: redissvc
-  #selector:
-    #matchLabels:
-      #app: redis
-      #role: master
-      #tier: backend 
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+      tier: backend 
   template:
     metadata:
       labels:
@@ -32,12 +32,9 @@ spec:
           name: data
         - mountPath: /redis-config
           name: config    
-      - containers:
-      - command: [sh, -c, source /redis-config/init.sh]
+      - command: [sh, -c, source /redis-config/sentinel.sh]
         image: redis:3.2.7-alpine
         name: sentinel
-        ports: 
-        - containerPort: 6379
         volumeMounts: 
         - mountPath: /redis-data
           name: data
@@ -48,5 +45,5 @@ spec:
           defaultMode: 420
           name: redis-config
         name: config
-      - emptydir: 
-          name: data              
+      - emptyDir: 
+        name: data              
