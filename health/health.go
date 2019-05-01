@@ -30,17 +30,17 @@ type response struct {
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.DebugLevel)
-
+	log.SetOutput(os.Stdout)
 }
 
 func main() {
-	file, err := os.OpenFile("premium.log", os.O_CREATE|os.O_WRONLY, 0666)
+	/* file, err := os.OpenFile("premium.log", os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.SetOutput(os.Stdout)
 	} else {
 		log.SetOutput(file)
 		defer file.Close()
-	}
+	} */
 	log.Info("premium api starting...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healths/premiums", premium)
