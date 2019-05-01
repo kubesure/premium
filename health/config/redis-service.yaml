@@ -15,4 +15,4 @@ spec:
     app: redis
     role: master
     tier: backend
-  type: ClusterIP
+  clusterIP: None

@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: redis-premium-master
   labels:
@@ -7,12 +7,13 @@ metadata:
     role: master
     tier: backend
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redis
-      role: master
-      tier: backend 
+  replicas: 3
+  serviceName: redissvc
+  #selector:
+    #matchLabels:
+      #app: redis
+      #role: master
+      #tier: backend 
   template:
     metadata:
       labels:
@@ -21,11 +22,31 @@ spec:
         tier: backend
     spec:
       containers:
-      - image: redis
+      - command: [sh, -c, source /redis-config/init.sh]
+        image: redis:3.2.7-alpine
         name: redis
         ports: 
         - containerPort: 6379
-        resources:
-          requests:
-            cpu: 100m
-            memory: 100Mi
+        volumeMounts: 
+        - mountPath: /redis-data
+          name: data
+        - mountPath: /redis-config
+          name: config    
+      - containers:
+      - command: [sh, -c, source /redis-config/init.sh]
+        image: redis:3.2.7-alpine
+        name: sentinel
+        ports: 
+        - containerPort: 6379
+        volumeMounts: 
+        - mountPath: /redis-data
+          name: data
+        - mountPath: /redis-config
+          name: config          
+      volumes: 
+      - configMap: 
+          defaultMode: 420
+          name: redis-config
+        name: config
+      - emptydir: 
+          name: data              
