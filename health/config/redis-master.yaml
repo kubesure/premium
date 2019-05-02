@@ -45,6 +45,6 @@ spec:
           defaultMode: 420
           name: redis-config
         name: config
-      - name: redis-data
+      - name: data
         persistentVolumeClaim:
            claimName: redis-pv-claim                   
