@@ -1,0 +1,15 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: redis-pv-volume
+  labels:
+    app: premium
+    type: DB
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 200M
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"

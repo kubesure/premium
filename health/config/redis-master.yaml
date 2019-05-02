@@ -45,5 +45,6 @@ spec:
           defaultMode: 420
           name: redis-config
         name: config
-      - emptyDir: 
-        name: data              
+      - name: redis-data
+        persistentVolumeClaim:
+           claimName: redis-pv-claim                   
