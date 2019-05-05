@@ -10,6 +10,9 @@ spec:
   capacity:
     storage: 200M
   accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/mnt/redis/data"
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /opt/sfw
+    server: 172.31.46.92
+    readOnly: false
