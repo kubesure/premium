@@ -1,8 +1,11 @@
 # premium
 
- kubectl create configmap --from-file=slave.conf=./slave.conf --from-file=master.conf=./master.conf --from-file=sentinel.conf=./sentinel.conf --from-file=init.sh=./init.sh --from-file=sentinel.sh=./sentinel.sh redis-config
+apt-get install procps
 
- k exec redis-premium-master-2 -c sentinel -- redis-cli -p 26379 sentinel get-master-addr-by-name redis-premium-master
+
+kubectl create configmap --from-file=slave.conf=./slave.conf --from-file=master.conf=./master.conf --from-file=sentinel.conf=./sentinel.conf --from-file=init.sh=./init.sh --from-file=sentinel.sh=./sentinel.sh redis-config
+
+k exec redis-premium-master-2 -c sentinel -- redis-cli -p 26379 sentinel get-master-addr-by-name redis-premium-master
 
 
 sudo apt-get install jq
