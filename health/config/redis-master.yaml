@@ -35,6 +35,8 @@ spec:
       - command: [sh, -c, source /redis-config/sentinel.sh]
         image: redis:3.2.7-alpine
         name: sentinel
+        ports:
+        - containerPort: 26379
         volumeMounts: 
         - mountPath: /redis-data
           name: data
