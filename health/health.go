@@ -4,18 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/360EntSecGroup-Skylar/excelize"
-	"github.com/gomodule/redigo/redis"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"time"
+
+	"github.com/360EntSecGroup-Skylar/excelize"
+	"github.com/gomodule/redigo/redis"
+	log "github.com/sirupsen/logrus"
 )
 
 var redissvc = os.Getenv("redissvc")
+var sentinelsvc = os.Getenv("sentinelsvc")
 
 type healthreq struct {
 	Code        string `json:"code"`
@@ -123,7 +125,7 @@ func marshallReq(data string) (*healthreq, error) {
 	var h healthreq
 	err := json.Unmarshal([]byte(data), &h)
 	if err != nil {
-		return nil, fmt.Errorf("err during unmarshalling ", err)
+		return nil, fmt.Errorf("err during unmarshalling %v", err)
 	}
 	return &h, nil
 }
@@ -159,7 +161,7 @@ func calculateAge(bdate string) int {
 }
 
 func calPremium(h *healthreq) (string, error) {
-	c, err := conn()
+	c, err := connRead()
 	if err != nil {
 		return "", err
 	}
@@ -167,7 +169,7 @@ func calPremium(h *healthreq) (string, error) {
 	age := calculateAge(h.DateOfBirth)
 	score, err := calulateScore(age)
 	if err != nil {
-		return "", fmt.Errorf("cannot calculate age for dob %s", age)
+		return "", fmt.Errorf("cannot calculate age for dob %v", age)
 	}
 	key := h.Code + ":" + h.SumInsured
 
@@ -185,10 +187,10 @@ func calPremium(h *healthreq) (string, error) {
 func load() error {
 	xlsx, err := excelize.OpenFile("./premium_tables.xlsx")
 	if err != nil {
-		return fmt.Errorf("cannot load matrix file ", err)
+		return fmt.Errorf("cannot load matrix file %v", err)
 	}
 
-	c, err := conn()
+	c, err := connWrite()
 	if err != nil {
 		return err
 	}
@@ -214,7 +216,7 @@ func load() error {
 		log.Debugf("key %v premium %v score %v ", key, premium, score)
 		_, err := c.Do("ZADD", key, score, premium)
 		if err != nil {
-			return fmt.Errorf("err adding key %s score %s premium %s to redis", key, score, premium)
+			return fmt.Errorf("err adding key %v score %v premium %v to redis", key, score, premium)
 		}
 		if score == 8 {
 			score = 0
@@ -224,22 +226,43 @@ func load() error {
 }
 
 func unload() error {
-	c, err := conn()
+	c, err := connWrite()
 	if err != nil {
 		return err
 	}
 	defer c.Close()
 	_, errFlush := c.Do("FLUSHALL")
 	if errFlush != nil {
-		return fmt.Errorf("err flusing all keys ", errFlush)
+		return fmt.Errorf("err flusing all keys %v", errFlush)
 	}
 	return nil
 }
 
-func conn() (redis.Conn, error) {
+func connRead() (redis.Conn, error) {
 	c, err := redis.DialURL("redis://" + redissvc + ":6379/0")
 	if err != nil {
 		return nil, fmt.Errorf("Cannot connect to redis %v ", err)
 	}
 	return c, nil
+}
+
+func connWrite() (redis.Conn, error) {
+	sc, err := redis.DialURL("redis://" + sentinelsvc + ":36379/0")
+	if err != nil {
+		return nil, fmt.Errorf("Cannot connect to redis sentinel %v ", err)
+	}
+	defer sc.Close()
+
+	minfo, err := redis.Strings(sc.Do("sentinel", "get-master-addr-by-name", "redis-premium-master"))
+	log.Println(minfo)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot find redis master %v ", err)
+	}
+
+	mc, err := redis.DialURL("redis://" + minfo[0] + ":6379/0")
+	if err != nil {
+		return nil, fmt.Errorf("Cannot connect to redis master %v ", err)
+	}
+	sc.Close()
+	return mc, nil
 }
