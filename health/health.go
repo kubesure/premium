@@ -17,7 +17,6 @@ import (
 )
 
 var redissvc = os.Getenv("redissvc")
-var sentinelsvc = os.Getenv("sentinelsvc")
 
 type healthreq struct {
 	Code        string `json:"code"`
@@ -247,7 +246,7 @@ func connRead() (redis.Conn, error) {
 }
 
 func connWrite() (redis.Conn, error) {
-	sc, err := redis.DialURL("redis://" + sentinelsvc + ":36379/0")
+	sc, err := redis.DialURL("redis://" + redissvc + ":26379/0")
 	if err != nil {
 		return nil, fmt.Errorf("Cannot connect to redis sentinel %v ", err)
 	}
