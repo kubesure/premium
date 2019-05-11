@@ -81,7 +81,6 @@ data:
       sleep 1
     done
     redis-sentinel /sentinel.conf
----
   init.sh: |-
     #!/bin/bash
     if [[ ${HOSTNAME} == 'redis-premium-master-0' ]]; then
