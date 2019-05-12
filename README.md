@@ -1,7 +1,7 @@
 ## Install 
 
 ```
-kubectl apply -f config/premium.yaml
+kubectl apply -f health/config/premium.yaml
 
 kubectl exec redis-premium-master-2 -c sentinel -- redis-cli -p 26379 sentinel get-master-addr-by-name redis-premium-master
 
