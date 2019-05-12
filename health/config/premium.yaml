@@ -165,10 +165,12 @@ spec:
         type: backend
     spec:
       containers:
-      - image: premiumcalc:v1
+      - image: bikertales/premiumcalc:v1
         name: premiumcalc
         ports:
         - containerPort: 8000
         env: 
         - name: redissvc
           value: redissvc  
+      imagePullSecrets:
+      - name: regcred
