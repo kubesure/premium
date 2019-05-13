@@ -1,3 +1,36 @@
+<<<<<<< HEAD
+=======
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: redis-pv-volume
+  labels:
+    app: premium
+    type: DB
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 200M
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /opt/sfw
+    server: 172.31.46.92
+    readOnly: false
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: redis-pv-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
+---
+>>>>>>> a57ff1478977ce8cb23068bee4afaf13e58cd52d
 apiVersion: v1
 kind: Service
 metadata:
@@ -142,10 +175,12 @@ spec:
         type: backend
     spec:
       containers:
-      - image: premiumcalc:v1
+      - image: bikertales/premiumcalc:v1
         name: premiumcalc
         ports:
         - containerPort: 8000
         env: 
         - name: redissvc
           value: redissvc  
+      imagePullSecrets:
+      - name: regcred
