@@ -1,33 +1,3 @@
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: redis-pv-volume
-  labels:
-    app: premium
-    type: DB
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 200M
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  nfs:
-    path: /opt/sfw
-    server: 172.31.46.92
-    readOnly: false
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: redis-pv-claim
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 3Gi
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -138,9 +108,16 @@ spec:
           defaultMode: 420
           name: redis-config
         name: config
-      - name: data
-        persistentVolumeClaim:
-           claimName: redis-pv-claim
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: default
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
 ---           
 apiVersion: apps/v1
 kind: Deployment
