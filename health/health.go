@@ -44,6 +44,7 @@ func main() {
 	} */
 	log.Info("premium api starting...")
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", healthz)
 	mux.HandleFunc("/api/v1/healths/premiums", premium)
 	mux.HandleFunc("/api/v1/healths/premiums/loads", loadMatrix)
 	mux.HandleFunc("/api/v1/healths/premiums/unloads", unloadMatrix)
@@ -63,6 +64,13 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ListenAndServe(): %s", err)
 	}
+}
+
+func healthz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+	data := (time.Now()).String()
+	log.Debug("health ok")
+	w.Write([]byte(data))
 }
 
 func validateReq(w http.ResponseWriter, req *http.Request) error {
