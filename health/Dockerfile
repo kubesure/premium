@@ -4,7 +4,7 @@ FROM golang:1.12.4-alpine AS builder
 RUN apk update && apk add --no-cache git
 WORKDIR /go/src/app
 COPY . .
-RUN go get -d -v
+#RUN go get -d -v
 RUN CGO_ENABLED=0 go install
 # uncomment for large build
 #ENTRYPOINT ["/go/bin/app"]
