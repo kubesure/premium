@@ -1,5 +1,10 @@
-## Install 
+## Install Dev
 
+redis-server ./master-dev.conf
+redis-server ./slave-dev.conf
+redis-server ./sentinel-dev.conf --sentinel
+
+## Install k8s
 ```
 kubectl apply -f health/config/premium.yaml
 
