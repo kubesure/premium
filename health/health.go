@@ -16,6 +16,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//Errcodes Error Codes
+type Errcodes int
+
+//Error Code Enum
+const (
+	SystemErr = iota
+	InputJSONInvalid
+	AgeRangeInvalid
+	RiskDetailsInvalid
+	InvalidRestMethod
+	InvalidContentType
+)
+
 var redissvc = os.Getenv("redissvc")
 
 type healthreq struct {
@@ -29,7 +42,7 @@ type response struct {
 }
 
 type erroresponse struct {
-	Code    string `json:"errorCode"`
+	Code    int    `json:"errorCode"`
 	Message string `json:"errorMessage"`
 }
 
@@ -81,19 +94,19 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 
 func validateReq(w http.ResponseWriter, req *http.Request) (*healthreq, *erroresponse) {
 	if req.Method != http.MethodPost {
-		return nil, &erroresponse{Code: "0001", Message: fmt.Sprintf("Invalid method %s", req.Method)}
+		return nil, &erroresponse{Code: InvalidRestMethod, Message: fmt.Sprintf("Invalid method %s", req.Method)}
 	}
 
 	if req.Header.Get("Content-Type") != "application/json" {
 		msg := fmt.Sprintf("Invalid content-type %s require %s", req.Header.Get("Content-Type"), "application/json")
-		return nil, &erroresponse{Code: "0001", Message: msg}
+		return nil, &erroresponse{Code: InvalidContentType, Message: msg}
 	}
 
 	body, _ := ioutil.ReadAll(req.Body)
 	h, err := marshallReq(string(body))
 
 	if err != nil {
-		return nil, &erroresponse{Code: "005", Message: "input invalid"}
+		return nil, err
 	}
 	return h, nil
 }
@@ -107,7 +120,7 @@ func premium(w http.ResponseWriter, req *http.Request) {
 	} else {
 		premium, calErr := calPremium(h)
 		if calErr != nil {
-			if calErr.Code == "001" {
+			if calErr.Code == SystemErr {
 				w.WriteHeader(http.StatusServiceUnavailable)
 			} else {
 				data, _ := json.Marshal(calErr)
@@ -139,13 +152,12 @@ func unloadMatrix(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func marshallReq(data string) (*healthreq, error) {
+func marshallReq(data string) (*healthreq, *erroresponse) {
 	var h healthreq
 	err := json.Unmarshal([]byte(data), &h)
 	if err != nil {
 		log.Errorf("err %v during unmarshalling data %s ", err, data)
-		data, _ := json.Marshal(erroresponse{Code: "001", Message: "input invalid"})
-		return nil, fmt.Errorf(string(data))
+		return nil, &erroresponse{Code: SystemErr, Message: "input invalid"}
 	}
 	return &h, nil
 }
@@ -184,7 +196,7 @@ func calPremium(h *healthreq) (string, *erroresponse) {
 	c, err := connRead()
 	if err != nil {
 		log.Errorf(err.Error())
-		return "", &erroresponse{Code: "001", Message: "system err"}
+		return "", &erroresponse{Code: SystemErr, Message: "system err"}
 	}
 	defer c.Close()
 
@@ -192,7 +204,7 @@ func calPremium(h *healthreq) (string, *erroresponse) {
 	if age > 70 {
 		log.Errorf("age %v not in range of 18 to 70", age)
 		msg := fmt.Sprintf("Age should be between 18 and 70")
-		return "", &erroresponse{Code: "003", Message: msg}
+		return "", &erroresponse{Code: AgeRangeInvalid, Message: msg}
 	}
 	score := calulateScore(age)
 	key := h.Code + ":" + h.SumInsured
@@ -201,13 +213,13 @@ func calPremium(h *healthreq) (string, *erroresponse) {
 
 	if err != nil {
 		log.Errorf("Cannot get premium for code %s error %v", key, err)
-		msg := fmt.Sprintf("Premium cannot be calculated risk details shared")
-		return "", &erroresponse{Code: "003", Message: msg}
+		msg := fmt.Sprintf("Premium cannot be calculated risk details")
+		return "", &erroresponse{Code: RiskDetailsInvalid, Message: msg}
 	}
 	if len(members) != 1 {
 		log.Errorf("code %s dob %s sum assured %s combination not found ", h.Code, h.DateOfBirth, h.SumInsured)
-		msg := fmt.Sprintf("Premium cannot be calculated risk details shared")
-		return "", &erroresponse{Code: "005", Message: msg}
+		msg := fmt.Sprintf("Premium cannot be calculated for risk details")
+		return "", &erroresponse{Code: RiskDetailsInvalid, Message: msg}
 	}
 	return members[0], nil
 }
