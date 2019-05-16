@@ -35,6 +35,6 @@ func TestLoad(t *testing.T) {
 }
 
 func TestCalAge(t *testing.T) {
-	age := calculateAge("1990-07-06")
+	age, _ := calculateAge("1990-07-06")
 	fmt.Println(age)
 }
