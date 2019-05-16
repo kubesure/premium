@@ -203,6 +203,7 @@ func calculateAge(bdate string) (int, error) {
 	if now.YearDay() < dob.YearDay() {
 		years--
 	}
+	log.Debug("Years calulated ", years)
 	return years, nil
 }
 
@@ -215,11 +216,11 @@ func calPremium(h *healthreq) (string, *erroresponse) {
 	defer c.Close()
 
 	age, _ := calculateAge(h.DateOfBirth)
-	if age > 70 {
+	/*if age > 70 {
 		log.Errorf("age %v not in range of 18 to 70", age)
 		msg := fmt.Sprintf("Age should be between 18 and 70")
 		return "", &erroresponse{Code: AgeRangeInvalid, Message: msg}
-	}
+	} */
 	score := calulateScore(age)
 	key := h.Code + ":" + h.SumInsured
 
