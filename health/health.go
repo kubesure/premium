@@ -108,6 +108,7 @@ func validateReq(w http.ResponseWriter, req *http.Request) (*healthreq, *errores
 	if err != nil {
 		return nil, err
 	}
+
 	return h, nil
 }
 
@@ -159,6 +160,16 @@ func marshallReq(data string) (*healthreq, *erroresponse) {
 		log.Errorf("err %v during unmarshalling data %s ", err, data)
 		return nil, &erroresponse{Code: SystemErr, Message: "input invalid"}
 	}
+
+	_, errDob := calculateAge(h.DateOfBirth)
+
+	if errDob != nil {
+		return nil, &erroresponse{Code: InputJSONInvalid, Message: "Invalid Date of birth enter for yyyy-mm-dd"}
+	}
+
+	if len(h.Code) == 0 || err != nil || len(h.SumInsured) == 0 {
+		return nil, &erroresponse{Code: InputJSONInvalid, Message: "Invalid Input"}
+	}
 	return &h, nil
 }
 
@@ -183,7 +194,10 @@ func calulateScore(age int) int {
 
 func calculateAge(bdate string) (int, error) {
 	const layoutISO = "2006-01-02"
-	dob, _ := time.Parse(layoutISO, bdate)
+	dob, err := time.Parse(layoutISO, bdate)
+	if err != nil {
+		return 0, err
+	}
 	now := time.Now()
 	years := now.Year() - dob.Year()
 	if now.YearDay() < dob.YearDay() {
