@@ -28,10 +28,16 @@ type response struct {
 	Premium string `json:"premium"`
 }
 
+type erroresponse struct {
+	Code    string `json:"errorCode"`
+	Message string `json:"errorMessage"`
+}
+
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
+	log.SetReportCaller(true)
 }
 
 func main() {
@@ -73,40 +79,45 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(data))
 }
 
-func validateReq(w http.ResponseWriter, req *http.Request) error {
+func validateReq(w http.ResponseWriter, req *http.Request) (*healthreq, *erroresponse) {
 	if req.Method != http.MethodPost {
-		//log.Error("invalid method ", req.Method)
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return fmt.Errorf("Invalid method %s", req.Method)
+		return nil, &erroresponse{Code: "0001", Message: fmt.Sprintf("Invalid method %s", req.Method)}
 	}
 
 	if req.Header.Get("Content-Type") != "application/json" {
-		//log.Error("invalid content type ", req.Header.Get("Content-Type"))
-		w.WriteHeader(http.StatusBadRequest)
-		return fmt.Errorf("Invalid content-type %s require %s", req.Header.Get("Content-Type"), "application/json")
-	}
-	return nil
-}
-
-func premium(w http.ResponseWriter, req *http.Request) {
-	if err := validateReq(w, req); err != nil {
-		return
+		msg := fmt.Sprintf("Invalid content-type %s require %s", req.Header.Get("Content-Type"), "application/json")
+		return nil, &erroresponse{Code: "0001", Message: msg}
 	}
 
 	body, _ := ioutil.ReadAll(req.Body)
 	h, err := marshallReq(string(body))
+
 	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusBadRequest)
+		return nil, &erroresponse{Code: "005", Message: "input invalid"}
 	}
-	s, err := calPremium(h)
+	return h, nil
+}
+
+func premium(w http.ResponseWriter, req *http.Request) {
+	h, err := validateReq(w, req)
 	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusServiceUnavailable)
-	} else {
-		data, _ := json.Marshal(response{Premium: s})
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusBadRequest)
+		data, _ := json.Marshal(err)
 		fmt.Fprintf(w, "%s", data)
+	} else {
+		premium, calErr := calPremium(h)
+		if calErr != nil {
+			if calErr.Code == "001" {
+				w.WriteHeader(http.StatusServiceUnavailable)
+			} else {
+				data, _ := json.Marshal(calErr)
+				fmt.Fprintf(w, "%s", data)
+			}
+		} else {
+			data, _ := json.Marshal(response{Premium: premium})
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "%s", data)
+		}
 	}
 }
 
@@ -132,31 +143,33 @@ func marshallReq(data string) (*healthreq, error) {
 	var h healthreq
 	err := json.Unmarshal([]byte(data), &h)
 	if err != nil {
-		return nil, fmt.Errorf("err during unmarshalling %v", err)
+		log.Errorf("err %v during unmarshalling data %s ", err, data)
+		data, _ := json.Marshal(erroresponse{Code: "001", Message: "input invalid"})
+		return nil, fmt.Errorf(string(data))
 	}
 	return &h, nil
 }
 
-func calulateScore(age int) (int, error) {
+func calulateScore(age int) int {
 	if age >= 18 && age <= 35 {
-		return 1, nil
+		return 1
 	} else if age >= 36 && age <= 45 {
-		return 2, nil
+		return 2
 	} else if age >= 46 && age <= 55 {
-		return 3, nil
+		return 3
 	} else if age >= 56 && age <= 60 {
-		return 4, nil
+		return 4
 	} else if age >= 61 && age <= 65 {
-		return 5, nil
+		return 5
 	} else if age >= 66 && age <= 70 {
-		return 6, nil
+		return 6
 	} else if age > 70 {
-		return 7, nil
+		return 7
 	}
-	return 0, nil
+	return 0
 }
 
-func calculateAge(bdate string) int {
+func calculateAge(bdate string) (int, error) {
 	const layoutISO = "2006-01-02"
 	dob, _ := time.Parse(layoutISO, bdate)
 	now := time.Now()
@@ -164,29 +177,37 @@ func calculateAge(bdate string) int {
 	if now.YearDay() < dob.YearDay() {
 		years--
 	}
-	return years
+	return years, nil
 }
 
-func calPremium(h *healthreq) (string, error) {
+func calPremium(h *healthreq) (string, *erroresponse) {
 	c, err := connRead()
 	if err != nil {
-		return "", err
+		log.Errorf(err.Error())
+		return "", &erroresponse{Code: "001", Message: "system err"}
 	}
 	defer c.Close()
-	age := calculateAge(h.DateOfBirth)
-	score, err := calulateScore(age)
-	if err != nil {
-		return "", fmt.Errorf("cannot calculate age for dob %v", age)
+
+	age, _ := calculateAge(h.DateOfBirth)
+	if age > 70 {
+		log.Errorf("age %v not in range of 18 to 70", age)
+		msg := fmt.Sprintf("Age should be between 18 and 70")
+		return "", &erroresponse{Code: "003", Message: msg}
 	}
+	score := calulateScore(age)
 	key := h.Code + ":" + h.SumInsured
 
 	members, err := redis.Strings(c.Do("ZRANGEBYSCORE", key, score, score))
 
 	if err != nil {
-		return "", fmt.Errorf("Cannot get premium for code %s error %v", key, err)
+		log.Errorf("Cannot get premium for code %s error %v", key, err)
+		msg := fmt.Sprintf("Premium cannot be calculated risk details shared")
+		return "", &erroresponse{Code: "003", Message: msg}
 	}
 	if len(members) != 1 {
-		return "", fmt.Errorf("code %s  dob %s sum assured %s combination not found ", h.Code, h.DateOfBirth, h.SumInsured)
+		log.Errorf("code %s dob %s sum assured %s combination not found ", h.Code, h.DateOfBirth, h.SumInsured)
+		msg := fmt.Sprintf("Premium cannot be calculated risk details shared")
+		return "", &erroresponse{Code: "005", Message: msg}
 	}
 	return members[0], nil
 }
