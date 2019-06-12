@@ -51,6 +51,16 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 	log.SetReportCaller(true)
+	keys, err := keysExists()
+	if err != nil {
+		log.Error("Error while keys check")
+	} else if err == nil && keys == 0 {
+		if err := load(); err != nil {
+			log.Error(err)
+		}
+	} else {
+		log.Debug("Matrix already loaded....")
+	}
 }
 
 func main() {
@@ -67,6 +77,7 @@ func main() {
 	mux.HandleFunc("/api/v1/healths/premiums", premium)
 	mux.HandleFunc("/api/v1/healths/premiums/loads", loadMatrix)
 	mux.HandleFunc("/api/v1/healths/premiums/unloads", unloadMatrix)
+	mux.HandleFunc("/api/v1/healths/premiums/checks", checkMatrix)
 	srv := http.Server{Addr: ":8000", Handler: mux}
 	ctx := context.Background()
 	c := make(chan os.Signal, 1)
@@ -148,6 +159,18 @@ func unloadMatrix(w http.ResponseWriter, req *http.Request) {
 	if err := unload(); err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusServiceUnavailable)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func checkMatrix(w http.ResponseWriter, req *http.Request) {
+	keys, err := keysExists()
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	} else if keys != 1 {
+		w.WriteHeader(http.StatusNotFound)
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
@@ -291,6 +314,28 @@ func unload() error {
 		return fmt.Errorf("err flusing all keys %v", errFlush)
 	}
 	return nil
+}
+
+func keysExists() (int, error) {
+	c, err := connRead()
+	if err != nil {
+		return 0, err
+	}
+	defer c.Close()
+
+	members, err := redis.Strings(c.Do("KEYS", "*"))
+
+	log.Println(len(members))
+
+	if err != nil {
+		log.Errorf("Error while Keys * %v ", err)
+		return 0, err
+	}
+	if len(members) != 1 {
+		log.Errorf("No keys found")
+		return 0, nil
+	}
+	return len(members), nil
 }
 
 func connRead() (redis.Conn, error) {
