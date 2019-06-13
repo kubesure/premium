@@ -51,16 +51,6 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 	log.SetReportCaller(true)
-	keys, err := keysExists()
-	if err != nil {
-		log.Error("Error while keys check")
-	} else if err == nil && keys == 0 {
-		if err := load(); err != nil {
-			log.Error(err)
-		}
-	} else {
-		log.Debug("Matrix already loaded....")
-	}
 }
 
 func main() {
@@ -147,10 +137,16 @@ func premium(w http.ResponseWriter, req *http.Request) {
 }
 
 func loadMatrix(w http.ResponseWriter, req *http.Request) {
-	if err := load(); err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusServiceUnavailable)
+	keys, err := keysExists()
+	if err != nil {
+		log.Error("Error while keys exists check", err)
+	} else if err == nil && keys == 0 {
+		if err := load(); err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
 	} else {
+		log.Debug("Matrix already loaded....")
 		w.WriteHeader(http.StatusOK)
 	}
 }
