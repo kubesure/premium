@@ -144,6 +144,9 @@ func loadMatrix(w http.ResponseWriter, req *http.Request) {
 		if err := load(); err != nil {
 			log.Error(err)
 			w.WriteHeader(http.StatusServiceUnavailable)
+		} else {
+			log.Debug("Matix loaded...")
+			w.WriteHeader(http.StatusOK)
 		}
 	} else {
 		log.Debug("Matrix already loaded....")
