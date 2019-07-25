@@ -3,10 +3,14 @@ defaults: &defaults
   working_directory: /go/src/github.com/kubesure/premium
 jobs:
   test:
+    docker:
+      - image: circleci/golang:1.12.4
     steps:
       - checkout
       - run: go test -run TestMarshal
   build:
+    docker:
+      - image: circleci/golang:1.12.4
     steps:
       - checkout
       - run: 
@@ -14,6 +18,8 @@ jobs:
           command: |
             docker build . -t $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1
   push:
+    docker:
+      - image: circleci/golang:1.12.4
     steps:
       - checkout
       - run: 
@@ -44,4 +50,4 @@ workflows:
             - build
           filters:
             branches:
-              only: master         
+              only: master     
