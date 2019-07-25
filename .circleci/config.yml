@@ -1,10 +1,11 @@
 version: 2
 defaults: &defaults
-  working_directory: /go/src/github.com/kubesure/premium
+  
 jobs:
   test:
     docker:
       - image: circleci/golang:1.12.4
+    working_directory: /go/src/github.com/kubesure/premium  
     steps:
       - checkout
       - run: go test -run TestMarshal
