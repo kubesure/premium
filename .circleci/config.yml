@@ -10,8 +10,9 @@ jobs:
       - checkout
       - run: go test -run TestMarshal
   build:
-    docker:
-      - image: circleci/golang:1.12.4
+    machine:
+      image: circleci/classic:201808-01
+      docker_layer_caching: true
     steps:
       - checkout
       - run: 
@@ -19,8 +20,8 @@ jobs:
           command: |
             docker build . -t $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1
   push:
-    docker:
-      - image: circleci/golang:1.12.4
+    machine:
+      image: circleci/classic:201808-01
     steps:
       - checkout
       - run: 
