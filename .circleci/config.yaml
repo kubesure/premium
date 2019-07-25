@@ -1,13 +1,47 @@
 version: 2
+defaults: &defaults
+  working_directory: /go/src/github.com/kubesure/premium
 jobs:
-  build:
-    docker:
-      - image: circleci/golang:1.12.4
-
-    working_directory: /go/src/github.com/kubesure/premium
-    
+  test:
     steps:
       - checkout
-
-      #- run: go get -v -t -d ./...
-      - run: go test -v ./...
+      - run: go test -run TestMarshal
+  build:
+    steps:
+      - checkout
+      - run: 
+          name: build image
+          command: |
+            docker build . -t $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1
+  push:
+    steps:
+      - checkout
+      - run: 
+          name: tag and push image
+          command: |
+            docker build -t $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1 .
+            echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
+            docker push $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1	
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - test:
+          context: DOCKERHUB
+          filters:
+            branches:
+              only: master        
+      - build:
+          context: DOCKERHUB 
+          requires:
+            - test
+          filters:
+            branches:
+              only: master
+      - push:
+          context: DOCKERHUB
+          requires:
+            - build
+          filters:
+            branches:
+              only: master         
