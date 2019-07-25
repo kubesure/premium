@@ -27,19 +27,19 @@ workflows:
   build-deploy:
     jobs:
       - test:
-          context: DOCKERHUB
+          context: DockerHub
           filters:
             branches:
               only: master        
       - build:
-          context: DOCKERHUB 
+          context: DockerHub 
           requires:
             - test
           filters:
             branches:
               only: master
       - push:
-          context: DOCKERHUB
+          context: DockerHub
           requires:
             - build
           filters:
