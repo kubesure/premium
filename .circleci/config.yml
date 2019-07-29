@@ -9,7 +9,7 @@ jobs:
     steps:
       - checkout
       - run: go test -run TestMarshal  
-  push:
+  buildpush:
     machine:
       image: circleci/classic:201808-01
       docker_layer_caching: true
@@ -30,7 +30,7 @@ workflows:
           filters:
             branches:
               only: master        
-      - build:
+      - buildpush:
           context: DockerHub 
           requires:
             - test
