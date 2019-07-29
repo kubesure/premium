@@ -1,6 +1,7 @@
-version: 2
+version: 2.1
+orbs:
+  codecov: codecov/codecov@1.0.5
 defaults: &defaults
-  
 jobs:
   test:
     docker:
@@ -8,28 +9,20 @@ jobs:
     working_directory: /go/src/github.com/kubesure/premium  
     steps:
       - checkout
-      - run: go test -run TestMarshal
-  build:
-    machine:
-      image: circleci/classic:201808-01
-      docker_layer_caching: true
-    steps:
-      - checkout
-      - run: 
-          name: build image
-          command: |
-            docker build . -t $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1
+      - run: go test -run TestMarshal  
   push:
     machine:
       image: circleci/classic:201808-01
     steps:
       - checkout
       - run: 
-          name: tag and push image
+          name: build tag push
           command: |
             docker build -t $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1 .
             echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
-            docker push $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1	
+            docker push $DOCKERHUB_USERNAME/premiumcalc:$CIRCLE_SHA1
+  codecov: 
+              	
 workflows:
   version: 2
   build-deploy:
@@ -46,10 +39,3 @@ workflows:
           filters:
             branches:
               only: master
-      - push:
-          context: DockerHub
-          requires:
-            - build
-          filters:
-            branches:
-              only: master     
