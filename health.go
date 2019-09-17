@@ -29,6 +29,7 @@ const (
 	InvalidContentType
 )
 
+//Redis k8s service
 var redissvc = os.Getenv("redissvc")
 
 type healthreq struct {
@@ -86,6 +87,7 @@ func main() {
 	}
 }
 
+//call by k8s liveness probe
 func healthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	data := (time.Now()).String()
@@ -113,6 +115,7 @@ func validateReq(w http.ResponseWriter, req *http.Request) (*healthreq, *errores
 	return h, nil
 }
 
+//calculates premium for the risk
 func premium(w http.ResponseWriter, req *http.Request) {
 	h, err := validateReq(w, req)
 	if err != nil {
@@ -136,6 +139,8 @@ func premium(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//loads premium matrix from xls file via the k8s readiness probe.
+//If premium matrix already loaded load is ignored.
 func loadMatrix(w http.ResponseWriter, req *http.Request) {
 	keys, err := keysExists()
 	if err != nil {
@@ -154,6 +159,7 @@ func loadMatrix(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//flushes the keys in redis for the loaded premium matrix. This is for mantainence only.
 func unloadMatrix(w http.ResponseWriter, req *http.Request) {
 	if err := unload(); err != nil {
 		log.Error(err)
@@ -163,6 +169,7 @@ func unloadMatrix(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//Check if premium is loaded.
 func checkMatrix(w http.ResponseWriter, req *http.Request) {
 	keys, err := keysExists()
 	if err != nil {
@@ -229,6 +236,7 @@ func calculateAge(bdate string) (int, error) {
 	return years, nil
 }
 
+//read the premium age matrix and gives back the premium for particular age range.
 func calPremium(h *healthreq) (string, *erroresponse) {
 	c, err := connRead()
 	if err != nil {
@@ -261,6 +269,7 @@ func calPremium(h *healthreq) (string, *erroresponse) {
 	return members[0], nil
 }
 
+//loads premium matrix in redis
 func load() error {
 	xlsx, err := excelize.OpenFile("./premium_tables.xlsx")
 	if err != nil {
@@ -302,6 +311,7 @@ func load() error {
 	return nil
 }
 
+//unload redis premium matrix keys
 func unload() error {
 	c, err := connWrite()
 	if err != nil {
@@ -337,6 +347,7 @@ func keysExists() (int, error) {
 	return len(members), nil
 }
 
+//gives back a readonly connection for read replica
 func connRead() (redis.Conn, error) {
 	c, err := redis.DialURL("redis://" + redissvc + ":6379/0")
 	if err != nil {
@@ -345,6 +356,7 @@ func connRead() (redis.Conn, error) {
 	return c, nil
 }
 
+//gives back a connection to master for writing or loading premium matrix
 func connWrite() (redis.Conn, error) {
 	sc, err := redis.DialURL("redis://" + redissvc + ":26379/0")
 	if err != nil {
