@@ -10,7 +10,7 @@ DTAG= $(DOCKER) tag
 DPUSH= $(DOCKER) push
 
 BINARY_NAME=premium
-BINARY_VERSION=v0.2
+BINARY_VERSION=$(shell git rev-parse HEAD)
 BINARY_UNIX=$(BINARY_NAME)
 TAG_LOCAL = premiumcalc:$(BINARY_VERSION)
 TAG_HUB = bikertales/premiumcalc:$(BINARY_VERSION)
