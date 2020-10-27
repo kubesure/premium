@@ -1,9 +1,9 @@
 ## Install Dev
 
 ```
-redis-server ./master-dev.conf
-redis-server ./slave-dev.conf
-redis-server ./sentinel-dev.conf --sentinel
+redis-server .conf/master-dev.conf
+redis-server .conf/slave-dev.conf
+redis-server .conf/sentinel-dev.conf --sentinel
 ```
 
 ## Install k8s
@@ -25,10 +25,10 @@ curl -i http://<ip of premiumcalc pod>:8000/api/v1/healths/premiums/loads
 
 ## calculate premium
 ```
-jq -n '{"code": "1A","sumInsured": "100000","dateOfBirth": "1990-06-07"}' | \
-curl -H "Content-Type: application/json" -d@- http://<ip of premiumcalc pod>:8000/api/v1/healths/premiums | jq .
+jq -n '{"code": "1A","sumInsured": "100000","dateOfBirth": "1990-06-07"}' \
+curl -H "Content-Type: application/json" -d@- http://<ip>:8000/api/v1/healths/premiums | jq .
 
- curl -i -X POST http://<ip of premiumcalc pod>:8000/api/v1/healths/premiums -H "Content-Type: application/json" \
+ curl -i -X POST http://<ip>:8000/api/v1/healths/premiums -H "Content-Type: application/json" \
  -d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}' 
 
  ingress
