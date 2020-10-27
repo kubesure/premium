@@ -51,7 +51,7 @@ func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
-	log.SetReportCaller(true)
+	//log.SetReportCaller(true)
 }
 
 func main() {
@@ -266,7 +266,11 @@ func calPremium(h *healthreq) (string, *erroresponse) {
 		msg := fmt.Sprintf("Premium cannot be calculated for risk details")
 		return "", &erroresponse{Code: RiskDetailsInvalid, Message: msg}
 	}
-	return members[0], nil
+
+	var discount int = 25
+	premium, _ := strconv.Atoi(members[0])
+	premium = premium - discount
+	return strconv.Itoa(premium), nil
 }
 
 //loads premium matrix in redis
