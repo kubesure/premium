@@ -1,43 +1,35 @@
-## Install Dev
+## Develop
+
+Clone repo in go/src/github.com/kubesure #todo #defect 18 to convert to go modules  
+
+### start redis. conf folder contains configuration
 
 ```
-redis-server .conf/master-dev.conf
-redis-server .conf/slave-dev.conf
-redis-server .conf/sentinel-dev.conf --sentinel
+redis-server conf/master.conf
+redis-server conf/slave.conf
+redis-server conf/sentinel.conf --sentinel
 ```
 
-## Install k8s
-```
-kubectl apply -f health/config/premium.yaml
-
-kubectl exec redis-premium-master-2 -c sentinel -- redis-cli -p 26379 sentinel get-master-addr-by-name redis-premium-master
-
-sudo apt-get install jq
-
-kubectl get po -o wide
-```
+### run premium calc service. install Go 1.15 and above 
+export redissvc=localhost
+go run health.go
 
 ## load premium matrix in redis
 
 ```
-curl -i http://<ip of premiumcalc pod>:8000/api/v1/healths/premiums/loads
+curl -i http://<hostname>:8000/api/v1/healths/premiums/loads
 ```
 
-## calculate premium
+### calculate premium
 ```
-jq -n '{"code": "1A","sumInsured": "100000","dateOfBirth": "1990-06-07"}' \
-curl -H "Content-Type: application/json" -d@- http://<ip>:8000/api/v1/healths/premiums | jq .
 
- curl -i -X POST http://<ip>:8000/api/v1/healths/premiums -H "Content-Type: application/json" \
- -d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}' 
+curl -i -X POST http://<hostname>:8000/api/v1/healths/premiums \
+-H "Content-Type: application/json" \
+-d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}' | jq .
+```
 
- ingress
-
- curl -i -X POST http://<ingress lb ip>/api/v1/healths/premiums -H "Content-Type: application/json" -d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}'
- ```
-
-## unload premium matrix
+## unload premium matrix. reload excel based matrix
 
 ```
-curl -i http://<ip of premiumcalc pod>:8000/api/v1/healths/premiums/unloads
+curl -i http://<hostname>:8000/api/v1/healths/premiums/unloads
 ```
