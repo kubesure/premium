@@ -2,10 +2,11 @@
 
 Clone repo in go/src/github.com/kubesure #todo #defect 18 to convert to go modules  
 
-### start redis. conf folder contains configuration
+### start redis. conf folder contains configuration 
 
+# update redis data path in master.conf
 ```
-redis-server conf/master.conf
+redis-server conf/master.conf 
 redis-server conf/slave.conf
 redis-server conf/sentinel.conf --sentinel
 ```
@@ -23,7 +24,7 @@ curl -i http://<hostname>:8000/api/v1/healths/premiums/loads
 ### calculate premium
 ```
 
-curl -i -X POST http://<hostname>:8000/api/v1/healths/premiums \
+curl -X POST http://<hostname>:8000/api/v1/healths/premiums \
 -H "Content-Type: application/json" \
 -d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}' | jq .
 ```
@@ -34,10 +35,10 @@ curl -i -X POST http://<hostname>:8000/api/v1/healths/premiums \
 curl -i http://<hostname>:8000/api/v1/healths/premiums/unloads
 ```
 
-### deploy and run in Minikube. Create a VM with 10 GM ram and 20 GB disk
+### deploy and run in Kind. Create Kind with Nginx Ingress Controller (https://kind.sigs.k8s.io/docs/user/ingress/#using-ingress)
 
 ```
-git clone repo https://github.com/kubesure/helm-charts.git
+git clone https://github.com/kubesure/helm-charts.git
 cd helm-charts/premium
 helm install premium .
 
@@ -47,18 +48,13 @@ kubectl run curl --image=radial/busyboxplus --restart=Never -it -- sh
 
 curl -i -X POST http://<ip of premiumcalc pod>:8000/api/v1/healths/premiums \
 -H "Content-Type: application/json" \
--d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}' | jq .
+-d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}' 
 
-cd helm-charts/ingress 
-helm install kubesureingress .
-
-#change service to nodeport only for k8s ingress and not for istio
-export KUBE_EDITOR=nano
-kubectl edit svc premiumcalc-svc
+cd helm-charts/ingress-egress 
+helm install kubesure .
 kubectl get ingress
-minikube tunnel -c
 
-curl -i -X POST http://<ip address ingress>/api/v1/healths/premiums \
+curl -i -X POST http://localhost/api/v1/healths/premiums \
 -H "Content-Type: application/json" \
 -d '{"code": "1A","sumInsured": "100000", "dateOfBirth": "1990-06-07"}'
 ```
