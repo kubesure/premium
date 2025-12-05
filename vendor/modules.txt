@@ -4,15 +4,12 @@ github.com/360EntSecGroup-Skylar/excelize
 # github.com/gomodule/redigo v2.0.1-0.20190322064113-39e2c31b7ca3+incompatible
 ## explicit
 github.com/gomodule/redigo/redis
-# github.com/konsorten/go-windows-terminal-sequences v1.0.2
-## explicit
-github.com/konsorten/go-windows-terminal-sequences
 # github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 github.com/mohae/deepcopy
-# github.com/sirupsen/logrus v1.4.2-0.20190403091019-9b3cdde74fbe
+# github.com/sirupsen/logrus v1.8.3
 ## explicit
 github.com/sirupsen/logrus
-# golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
-## explicit
+# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
+golang.org/x/sys/windows
